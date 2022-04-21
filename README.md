@@ -4,14 +4,14 @@
 
 ```json
 {
-    context: "page"
-    current: 1
+    context: "page",
+    current: 1,
     pages: {
         {path: '/', page: {…}, theme: 'dark'},
         {path: '/jazz', page: {…}, theme: 'dark'},
         {path: '/chess', page: {…}, theme: 'light'},
     },
-    swipeBack: ƒ backwards()
+    swipeBack: ƒ backwards(),
     swipeForward: ƒ forward()
 }
 
