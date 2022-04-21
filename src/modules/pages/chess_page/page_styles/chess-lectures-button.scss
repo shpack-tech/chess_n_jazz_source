@@ -1,0 +1,22 @@
+.lectures-button2 {
+    overflow: hidden;
+    border-top: 1px solid #BEBEBE;
+    width: calc(100vw - 5.555555vw);
+    height: 5vh;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    background: #F4F3F3;
+}
+
+.lectures-button__content2 {
+    color: #101010;
+    display: flex;
+    align-items: center;
+    font-family: AkrobatRegular;
+    line-height: 90%;
+    font-size: 12px;
+    padding: 0 20px 0 20px;
+}

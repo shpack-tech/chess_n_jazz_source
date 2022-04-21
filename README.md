@@ -1,70 +1,147 @@
-# Getting Started with Create React App
+# Слайды
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+Вся десктоп версия приложения обернута в `PageContext`, который передает такой объект
 
-## Available Scripts
+```json
+{
+    context: "page"
+    current: 1
+    pages: {
+        {path: '/', page: {…}, theme: 'dark'},
+        {path: '/jazz', page: {…}, theme: 'dark'},
+        {path: '/chess', page: {…}, theme: 'light'},
+    },
+    swipeBack: ƒ backwards()
+    swipeForward: ƒ forward()
+}
 
-In the project directory, you can run:
+```
 
-### `npm start`
+`context` - это вспомогательное поле, которе определяет где находится пользователь, на верхнем уровне или в карточках артиста
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+`current` - номер слайда
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+`pages` - массив со всеми страницами
 
-### `npm test`
+`swipeBack()` - функция, которая листает на 1 станицу назад
+`swipeForward()` - функция, которая листает на 1 станицу вперед
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+> Две последние функции - основные, с их помощью необходимо добавить события на элементы со стрелками (которые по клику отправляют на другую страницу)
 
-### `npm run build`
+```jsx
+// в начале функции
+import { PageContext } from '../../../PageContext';
+const [page, setPage] = useContext(PageContext);
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+// return
+<button
+	className="button-next"
+	onClick={() => {
+		page.swipeForward(); // если все условия из App.js соблюдены, перенаправит на следующую страницу
+	}}
+>
+	Вперед →
+</button>;
+```
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+### Как добавить новые страницы
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+В App.js есть массив `pages`
 
-### `npm run eject`
+```js
+const pages = [
+	{
+		path: '/', // указываем путь к странице
+		page: <StartPage child={true} />, // передаем сюда компонент и параметр child со значением true, это нужно для
+		theme: 'dark', // возможности не проигрывать анимации, пока элементы находятся за экраном
+	},
+	{
+		path: '/jazz',
+		page: <JazzPage child={true} />,
+		theme: 'dark', // тут задается цвет сайдбара меню, в зависимости от цвета страницы, всего две опции dark и light
+	},
+	{
+		path: '/chess',
+		page: <ChessPage child={true} />,
+		theme: 'light',
+	},
+];
+```
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+Чтобы добавить новую страницу, нужно внести компонент в этот массив и добавить в `Router`, который тоже находится в App.js
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+```jsx
+return (
+	<PageContext.Provider value={[pageContext, setPageContext]}>
+		{' '}
+		// тот самый объект
+		<MenuBar /> // меню
+		<animated.div //Обертка и анимация
+			className={anim === '' ? 'application' : 'application animated-now'}
+			ref={container}
+			style={anim === '' ? {} : applyAnimation(anim)}
+			onTransitionEnd={(e) => {
+				// редирект по завершении анимации
+				if (e.propertyName === 'transform') {
+					if (anim === 'backwards') {
+						if (pageContext.current - 1 > -1) {
+							setHelper(!helper);
+							setAnim('');
+							navigate(pages[pageContext.current - 1].path);
+						}
+					} else if (anim === 'forward') {
+						if (pageContext.current + 1 < pages.length) {
+							setHelper(!helper);
+							setAnim('');
+							navigate(pages[pageContext.current + 1].path);
+						}
+					}
+				}
+			}}
+		>
+			{prev_page()} // эта функция находит предыдущую страницу
+			<Suspense fallback={<div>Loading...</div>}>
+				<Routes>
+					<Route exact path="/" element={<StartPage />} /> // Сюда добавляем страницу
+					<Route path="/jazz" element={<JazzPage />} /> // Чтобы все работало, важно, чтобы страницы были и в роутере
+					<Route path="/chess" element={<ChessPage />} /> // и в массиве pages в одинокотом порядке
+				</Routes>
+			</Suspense>
+			{next_page()} // эта функция находит следующую страницу
+		</animated.div>
+	</PageContext.Provider>
+);
+```
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+> Всего на странице максимум находится три компонента, не считая меню и т.п.
+> Это нужно для анимации перехода между страницами
+> Если листаем вперед, то делаем свайп на `next_page()`, у которого отключены анимации, а когда анимация самого свайпа заканчивается происходит редирект на нужную страницу (`onTransitionEnd`), такими образом переход не заметен
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+### Анимации
 
-## Learn More
+Для удобства анимаций у нас тут подключена библиотека [react-spring](https://react-spring.io/) ←(ссылка)
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+Пример самой простой анимации с ее помощью (из App.js), а так, документация у них хорошая
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+```jsx
+import { useSpring, animated } from 'react-spring';
 
-### Code Splitting
+const slideForwardAnimation = useSpring({
+	// задаем значения от => до
+	from: { transform: 'translateX(0px)' },
+	to: { transform: 'translateX(-100vw)' },
+});
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+return <animated.div style={slideForwardAnimation}>Сдвинется влево</animated.div>; // чтобы анимации применились, нужно приписать к элементы .animated
+```
 
-### Analyzing the Bundle Size
+## Мобильная в версия
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+Это та часть, которая находится в приоритете. Там вроде нет сложных элементов, так что написал только динамическое переключение между десктопом и мобилой.
 
-### Making a Progressive Web App
+> В самом конце App.js мобильная версия ренедрится.
+> Эту часть можно считать отдельным приложением, для нее нужны отдельные компоненты.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+Ссылки на некоторые исходники:
+https://github.com/Klimenteen/chessjsx
+https://github.com/Klimenteen/chess
